@@ -8,11 +8,14 @@ Created on Tue Aug 11 15:37:44 2020
 import pandas as pd
 from yahoofinancials import YahooFinancials
 import datetime as dt
-import firebase_admin
+from firebase_admin import db
 from firebase_admin import credentials
+import firebase_admin
 
 cred = credentials.Certificate("C:/Users/Chun Ho Tse/git/monthly_stock_calculator/monthly_stock_calculator/monthly-stock-calculator.json")
-firebase_admin.initialize_app(cred)
+firebase_admin.initialize_app(cred,{ 
+    'databaseURL': 'https://monthly-stock-calculator.firebaseio.com/'
+})
 
 def take_ticker_data(ticker,month,quantity):
     yahoo_financials = YahooFinancials(ticker)
@@ -40,6 +43,7 @@ def take_ticker_data(ticker,month,quantity):
     print('Win/Loss Percentage : ' , percentage ,'%')
     result= dict()
     result['Ticker'] = ticker
+    result['month_duration'] = month
     result['Cost'] = cost
     result['Now_Asset'] = now_asset
     result['Average_stock_price'] = average_price
@@ -47,7 +51,22 @@ def take_ticker_data(ticker,month,quantity):
     result['Percentage'] = percentage
     return result
     
+def firebase_callback(event):
+    request = event.data
+    ticker = request['ticker']
+    month = request['month']
+    quantity = request['quantity']
+    result = take_ticker_data(ticker,month,quantity)
+    ref = db.reference('/result')
+    ref.set(result)
+    print('Result has uploaded to firebase database!')
 
+#result= take_ticker_data("NFLX",12,2)
+#ref = db.reference('/')
+#ref.set(result)
 
-result= take_ticker_data("NFLX",12,2)  
+ref = db.reference('/request')
+ref.listen(firebase_callback)
 
+while 1 :
+    pass
